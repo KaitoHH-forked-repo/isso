@@ -6,6 +6,7 @@ import sys
 import io
 import time
 import json
+import html
 
 import socket
 import smtplib
@@ -107,47 +108,64 @@ class SMTP(object):
         rv = io.StringIO()
 
         author = comment["author"] or "Anonymous"
-        if comment["email"]:
-            author += " <%s>" % comment["email"]
+        # if comment["email"]:
+        #     author += " <%s>" % comment["email"]
 
-        rv.write(author + " wrote:\n")
-        rv.write("\n")
-        rv.write(comment["text"] + "\n")
-        rv.write("\n")
+        rv.write("""
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<div style="background-color:white;border-top:2px solid #12ADDB;box-shadow:0 1px 3px #AAAAAA;line-height:180%;padding:0 15px 12px;max-width:500px;margin:50px auto;color:#555555;font-family:'Century Gothic','Trebuchet MS','Hiragino Sans GB',微软雅黑,'Microsoft Yahei',Tahoma,Helvetica,Arial,'SimSun',sans-serif;font-size:12px;">
+<h2 style="border-bottom:1px solid #DDD;font-size:14px;font-weight:normal;padding:13px 0 10px 8px;">
+<span style="color: #12ADDB;font-weight:bold;">
+你在「""")
+        rv.write(html.escape(self.conf.get("name")))
+        rv.write("""」上有一条新评论，内容如下：
+</span>
+</h2>
+<div style="padding:0 12px 0 12px; margin-top:18px;">
+<p>
+<strong>""")
+        rv.write(html.escape(author))
+        rv.write("""
+</strong>&nbsp;回复说：
+</p>
+<div style="background-color: #f5f5f5;padding: 10px 15px;margin:18px 0;word-wrap:break-word;">
+""")
+        rv.write(html.escape(comment["text"]))
+        rv.write("</div>")
 
         if admin:
             if comment["website"]:
-                rv.write("User's URL: %s\n" % comment["website"])
+                rv.write(html.escape("%s " % comment["website"]))
 
-            rv.write("IP address: %s\n" % comment["remote_addr"])
+            rv.write(html.escape("( %s )\n" % comment["remote_addr"]))
 
-        rv.write("Link to comment: %s\n" %
-                 (local("origin") + thread["uri"] + "#isso-%i" % comment["id"]))
-        rv.write("\n")
-        rv.write("---\n")
+        href = """<p>{}<a style="text-decoration:none; color:#12addb" href="{}" target="_blank">{}</a></p>"""
+        link = local("origin") + thread["uri"] + "#isso-%i" % comment["id"]
+        rv.write(href.format("", html.escape(link), "点击前往查看"))
+        rv.write("<hr>")
 
         if admin:
             uri = self.public_endpoint + "/id/%i" % comment["id"]
             key = self.isso.sign(comment["id"])
 
-            rv.write("Delete comment: %s\n" % (uri + "/delete/" + key))
+            rv.write(href.format("", html.escape(uri + "/delete/" + key), "删除这条评论"))
 
             if comment["mode"] == 2:
-                rv.write("Activate comment: %s\n" % (uri + "/activate/" + key))
+                rv.write(href.format("", html.escape(uri + "/activate/" + key), "通过这条评论"))
 
         else:
             uri = self.public_endpoint + "/id/%i" % parent_comment["id"]
             key = self.isso.sign(('unsubscribe', recipient))
 
-            rv.write("Unsubscribe from this conversation: %s\n" % (uri + "/unsubscribe/" + quote(recipient) + "/" + key))
-
+            rv.write(href.format("不想收到通知？", html.escape(uri + "/unsubscribe/" + quote(recipient) + "/" + key), "点击取消提醒"))
+        rv.write("</div></div>")
         rv.seek(0)
         return rv.read()
 
     def notify_new(self, thread, comment):
         if self.admin_notify:
             body = self.format(thread, comment, None, admin=True)
-            self.sendmail(thread["title"], body, thread, comment)
+            self.sendmail("你的文章《%s》有了新的评论" % thread["title"], body, thread, comment)
 
         if comment["mode"] == 1:
             self.notify_users(thread, comment)
@@ -167,7 +185,7 @@ class SMTP(object):
                 if "email" in comment_to_notify and comment_to_notify["notification"] and email not in notified \
                     and comment_to_notify["id"] != comment["id"] and email != comment["email"]:
                     body = self.format(thread, comment, parent_comment, email, admin=False)
-                    subject = "Re: New comment posted on %s" % thread["title"]
+                    subject = "你在《%s》上的评论有了新的回复" % thread["title"]
                     self.sendmail(subject, body, thread, comment, to=email)
                     notified.append(email)
 
@@ -184,7 +202,7 @@ class SMTP(object):
         from_addr = self.conf.get("from")
         to_addr = to or self.conf.get("to")
 
-        msg = MIMEText(body, 'plain', 'utf-8')
+        msg = MIMEText(body, 'html', 'utf-8')
         msg['From'] = from_addr
         msg['To'] = to_addr
         msg['Date'] = formatdate(localtime=True)
