@@ -1,6 +1,6 @@
 define({
-    "postbox-text": "在此输入评论 (最少 3 个字符)",
-    "postbox-author": "名字 (可选)",
+    "postbox-text": "你的邮箱对外保密。如果你留下邮箱，你会在有人回复时收到邮件提醒。(支持Markdown)",
+    "postbox-author": "昵称 (可选)",
     "postbox-email": "电子邮箱 (可选)",
     "postbox-website": "网站 (可选)",
     "postbox-preview": "预览",
