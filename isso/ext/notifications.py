@@ -183,7 +183,7 @@ class SMTP(object):
             for comment_to_notify in comments_to_notify:
                 email = comment_to_notify["email"]
                 if "email" in comment_to_notify and comment_to_notify["notification"] and email not in notified \
-                    and comment_to_notify["id"] != comment["id"] and email != comment["email"]:
+                    and comment_to_notify["id"] != comment["id"] and email != comment["email"] and email:
                     body = self.format(thread, comment, parent_comment, email, admin=False)
                     subject = "你在《%s》上的评论有了新的回复" % thread["title"]
                     self.sendmail(subject, body, thread, comment, to=email)
