@@ -6,7 +6,7 @@ define({
     "postbox-preview": "预览",
     "postbox-edit": "编辑",
     "postbox-submit": "提交",
-    "postbox-notification": "有新回复时发送邮件通知",
+    "postbox-notification": "回复时发送邮件提醒",
 
     "num-comments": "1 条评论\n{{ n }} 条评论",
     "no-comments": "还没有评论",
